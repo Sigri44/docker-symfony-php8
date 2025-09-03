@@ -10,7 +10,7 @@ RUN apk update
 RUN apk --no-cache add nginx supervisor gmp gmp-dev
 
 # Add php extensions
-RUN docker-php-ext-install mysqli pdo pdo_mysql sysvsem gmp
+RUN docker-php-ext-install mysqli pdo pdo_mysql sysvsem gmp intl
 
 RUN apk upgrade
 
