@@ -3,37 +3,33 @@ FROM php:${PHP_VERSION}-fpm-alpine
 
 RUN apk update
 
-#RUN apk --no-cache add php8 php8-fpm php8-json php8-openssl php8-curl php8-iconv php8-pdo_mysql \
-#    php8-zlib php8-xml php8-phar php8-intl php8-dom php8-xmlreader php8-ctype php8-session \
-#    php8-mbstring php8-gd php8-simplexml php8-xmlwriter php8-tokenizer nginx supervisor curl
+# dépendances runtime
+RUN apk --no-cache add nginx supervisor gmp gmp-dev icu-dev curl
 
-RUN apk --no-cache add nginx supervisor gmp gmp-dev icu-dev
+# dépendances build nécessaires pour PECL
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers
 
-# Add php extensions
+# extensions PHP de base
 RUN docker-php-ext-install mysqli pdo pdo_mysql sysvsem gmp intl
+
+# installer redis via PECL
+RUN pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .build-deps
 
 RUN apk upgrade
 
-#RUN apk --no-cache add php8-pecl-amqp php-zip
-
-# Configure nginx
-COPY config/nginx/nginx.conf /etc/nginx/nginx.conf
-
-# PHP8 symbolic link
-#RUN ln -s /usr/bin/php8 /usr/bin/php
-
-# Install composer
+# installer composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
 
-# Configure PHP-FPM
-#COPY config/php/fpm-pool.conf /usr/local/etc/php/php-fpm.d/zzz_custom.conf
-#COPY config/php/php.ini /usr/local/etc/php/conf.d/zzz_custom.ini
+# config nginx
+COPY config/nginx/nginx.conf /etc/nginx/nginx.conf
 
-# Copy run script
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-
-# Configure supervisord
+# config supervisord
 COPY config/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# script de démarrage
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 
 # Fix open() nginx.pid
 RUN mkdir -p /run/nginx/
